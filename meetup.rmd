@@ -2,7 +2,7 @@
 title: "&nbsp;&nbsp;&nbsp;&nbsp;Zurich R User meetup: Visualization special"
 output: 
   flexdashboard::flex_dashboard:
-    source_code: embed
+    source_code: "http://bit.do/zurichR"
     navbar:
       - { title: "Authors: Maciej, Dimitris", href: "mailto:mbledowski@ebay.com; dpsaradellis@ebay.com", align: right }
     orientation: rows
@@ -14,6 +14,8 @@ output:
     highlight: pygments
   runtime: shiny
 ---
+
+<style type="text/css"> .sidebar { overflow: auto; } </style>
 
 ```{r setup, include=FALSE}
 ## Run once
