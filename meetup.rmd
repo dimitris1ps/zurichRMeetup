@@ -1,0 +1,242 @@
+---
+title: "&nbsp;&nbsp;&nbsp;&nbsp;Zurich R User meetup: Visualization special"
+output: 
+  flexdashboard::flex_dashboard:
+    source_code: embed
+    navbar:
+      - { title: "Authors: Maciej, Dimitris", href: "mailto:mbledowski@ebay.com; dpsaradellis@ebay.com", align: right }
+    orientation: rows
+    vertical_layout: fill
+    logo: logo.png
+    favicon: favicon.ico
+    storyboard: false
+    theme: flatly
+    highlight: pygments
+  runtime: shiny
+---
+
+```{r setup, include=FALSE}
+## Run once
+# install.packages("pacman")
+# install.packages("devtools")
+# install.packages("magrittr")
+# install.packages("dplyr")
+# install.packages("flexdashboard", type = "source")
+# devtools::install_github("rstudio/leaflet")
+# devtools::install_github("rstudio/DT")
+# devtools::install_github("rstudio/shiny")
+# devtools::install_github("rstudio/crosstalk")
+# devtools::install_github("jcheng5/d3scatter")
+# devtools::install_github("rstudio/leaflet@joe/feature/crosstalk-filter")
+# devtools::install_github("rstudio/DT@joe/feature/crosstalk")
+# devtools::install_github("hadley/ggplot2")
+# devtools::install_github("jbkunst/highcharter")
+# devtools::install_github("timelyportfolio/parsetR")
+# devtools::install_github("rstudio/d3heatmap")
+# devtools::install_github("renkun-ken/formattable")
+## not run 
+
+pacman::p_load(dplyr, shiny, flexdashboard, crosstalk, highcharter, ggplot2, parsetR, DT, 
+               leaflet, d3scatter, d3heatmap, magrittr, formattable)
+
+#### Data set 1
+quakes$class <- factor(floor(quakes$mag), labels = c("Light", "Moderate", "Strong"))
+
+set.seed(10101)
+quakes <- quakes %>% sample_n(200)
+
+quakesCT <- SharedData$new(quakes)
+###################
+
+#### Data set 2
+set.seed(1979)
+
+dfShankey <- data_frame(origins = sample(c('Zurich', 'Warsaw', 'Athens', 'Bern'), size = 100, replace = TRUE), 
+                 destinations = sample(c('Wellington', 'New York', 'Hanoi', 'Maseru'), size = 100, replace = TRUE)) %>% 
+  group_by(origins, destinations) %>% summarize(counts = n()) %>% ungroup() %>% arrange(desc(counts))
+
+dfShankeyCT <- SharedData$new(dfShankey)
+###################
+
+#### Data set 3
+mtcarsCT <- SharedData$new(mtcars)
+###################
+```
+
+| &nbsp; <i class="fa fa-home fa-3">&nbsp;</i> Home |
+===================================== 
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+filter_slider("mag", "Magnitude", quakesCT, ~mag, step = 0.1)
+filter_slider("depth", "Depth", quakesCT, ~depth)
+filter_slider("counts", "Flights (sankeyNetwork)", dfShankeyCT, ~counts, step = 1)
+filter_slider("mpg", "Miles per Gallon (heatmap)", mtcarsCT, ~mpg, step = 0.1)
+filter_slider("hp", "horsepower (heatmap)", mtcarsCT, ~hp, step = 1)
+```
+
+<font-size:10>Copyright &copy; 2016 <b>Zurich User meetup: Visualization special</b>.<br><br> Built using <ul class="dashed"><li>R,</li> <li>flexdashboard,</li> <li>shiny,</li> <li>DT,</li> <li>leaflet,</li> <li>highcharter,</li> <li>d3scatter,</li> <li>parsetR,</li> <li>ggplot2,</li> <li>formattable,</li>
+<li>d3heatmap, </li><li>crosstalk and <span style="font-size:125%;color:red;">&nbsp; &hearts;</span></font-size></li> </ul>
+
+Row 1
+-----------------------------------------------------------------------
+
+### Leaflet
+
+```{r}
+pal <- colorFactor(c("#1f77bf", "#ff7f0e", "#2ca02c"), quakes$class)
+leaflet(quakesCT) %>% addTiles() %>% addCircles(radius = ~mag * 7000, weight = 1, fillOpacity = 0.8,
+  label = ~as.character(mag), color = ~pal(class))
+```
+
+### D3scatter
+
+```{r}
+d3scatter(quakesCT, x = ~depth, y = ~stations, color = ~class)
+```
+
+### HighCharter
+
+```{r include=TRUE}
+renderHighchart({hchart(quakesCT$data(withSelection = TRUE, withFilter = TRUE)$class, colorByPoint = TRUE)})
+```
+
+### Ggplot
+
+```{r include=TRUE}
+renderPlot({
+  df <- quakesCT$data(withSelection = TRUE, withFilter = TRUE)
+  ggplot(df, aes(x = mag, fill = selection_factor(df))) +
+    geom_histogram(binwidth = 0.2) + scale_fill_selection("#444444", "skyblue1")})
+```
+
+### SankeyNetwork
+
+```{r}
+renderParset({
+  parset(dfShankeyCT$data(withSelection = TRUE, withFilter = TRUE), dimensions = c('origins', 'destinations'), 
+       value = htmlwidgets::JS("function(d){return d.counts}"), tension = 0.5)})
+```
+
+
+Row 2
+-----------------------------------------------------------------------
+
+### Datatable
+
+```{r}
+datatable(quakesCT, rownames = FALSE, extensions = 'Scroller', 
+          options = list(scrollY = 200,scroller = TRUE))
+```
+
+### D3heatmap
+
+```{r}
+renderD3heatmap({
+  df3 <- mtcarsCT$data(withSelection = TRUE, withFilter = TRUE)
+  d3heatmap(df3[, -12], scale = "column", colors = "Spectral")
+})
+```
+
+| &nbsp; <i class="fa fa-table fa-3">&nbsp;</i> Just Tables |
+===================================== 
+
+
+Row 1
+-------------------------------------
+    
+### Place holder 1
+    
+```{r}
+df3 <- mtcars
+df3$Cars <- rownames(mtcars)
+cbind(Brands=df3[, 12], df3[, -12]) %>% 
+    datatable(rownames=F, 
+            # filter = 'top',
+              callback=JS('$("a.buttons-copy").css("background","#008CBA"); 
+               $("a.buttons-copy").css("font-size","15px");
+               $("a.buttons-copy").css("border-radius", "8px");
+               $("a.buttons-copy").css("margin-right","0px");
+               $("a.buttons-copy").hover(function(){
+                                         $(this).css("background-color", "#e7e7e7");
+                                         $(this).css("box-shadow", "0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19)");
+                                         }, function(){
+                                         $(this).css("background-color", "#008CBA");
+                                         $(this).css("box-shadow", "0 12px 16px 0 rgba(0,0,0,0), 0 17px 50px 0 rgba(0,0,0,0)");
+                                         });
+               
+               $("a.buttons-collection").css("background","#008CBA"); 
+               $("a.buttons-collection").css("font-size","15px");
+               $("a.buttons-collection").css("border-radius", "8px");
+               $("a.buttons-collection").css("margin-right","0px");
+               $("a.buttons-collection").hover(function(){
+                                         $(this).css("background-color", "#e7e7e7");
+                                         $(this).css("box-shadow", "0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19)");
+                                         }, function(){
+                                         $(this).css("background-color", "#008CBA");
+                                         $(this).css("box-shadow", "0 12px 16px 0 rgba(0,0,0,0), 0 17px 50px 0 rgba(0,0,0,0)");
+                                         });
+                
+               return table;'),
+            extensions = 'Buttons',
+            options = list(rownames = F,
+                           searching=F,
+                           paging = T,
+                           bInfo = F,
+                           columnDefs = list(list(className = 'dt-left',  targets = 0),
+                                             list(className = 'dt-center',  targets = 1:11)),
+                           pageLength = 10,
+                           initComplete = JS("function(settings, json) {",
+                                             "$(this.api().table().header()).css({'background-color': '#99ccff', 'color': '#003333'});","}"),
+                           dom = 'Bfrtip',
+                           buttons = list(list(extend = 'copy', text = '&nbsp;&nbsp;&nbsp;&nbsp;COPY&nbsp;&nbsp;&nbsp;&nbsp;'),
+                                          list(extend = 'collection',
+                                               buttons = c('csv', 'pdf'),
+                                               text = 'DOWNLOAD')
+                           )
+            )
+  )
+
+```
+   
+Row 2 {.tabset .tabset-fade}
+-------------------------------------
+   
+### Place holder 2
+
+```{r}
+datatable(quakes, rownames = FALSE, extensions = 'Scroller', 
+          options = list(scrollY = 200,scroller = TRUE))
+```   
+ 
+### Place holder 3
+    
+```{r}
+ft <- data.frame(
+  id = 1:10,
+  name = c("Bob", "Ashley", "James", "David", "Jenny", 
+    "Hans", "Leo", "John", "Emily", "Lee"), 
+  age = c(28, 27, 30, 28, 29, 29, 27, 27, 31, 30),
+  grade = c("C", "A", "A", "C", "B", "B", "B", "A", "C", "C"),
+  test1_score = c(8.9, 9.5, 9.6, 8.9, 9.1, 9.3, 9.3, 9.9, 8.5, 8.6),
+  test2_score = c(9.1, 9.1, 9.2, 9.1, 8.9, 8.5, 9.2, 9.3, 9.1, 8.8),
+  final_score = c(9, 9.3, 9.4, 9, 9, 8.9, 9.25, 9.6, 8.8, 8.7),
+  registered = c(TRUE, FALSE, TRUE, FALSE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
+  stringsAsFactors = FALSE)
+
+formattable(ft, list(
+  age = color_tile("white", "orange"),
+  grade = formatter("span",
+    style = x ~ ifelse(x == "A", style(color = "green", font.weight = "bold"), NA)),
+  test1_score = normalize_bar("pink", 0.2),
+  test2_score = normalize_bar("pink", 0.2),
+  final_score = formatter("span",
+    style = x ~ style(color = ifelse(rank(-x) <= 3, "green", "gray")),
+    x ~ sprintf("%.2f (rank: %02d)", x, rank(-x))),
+  registered = formatter("span", 
+    style = x ~ style(color = ifelse(x, "green", "red")),
+    x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Yes", "No")))
+))
+```
