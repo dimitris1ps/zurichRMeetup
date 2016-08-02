@@ -1,4 +1,5 @@
 ---
+# https://github.com/dimitris1ps/zurichRMeetup
 title: "&nbsp;&nbsp;&nbsp;&nbsp;Zurich R User meetup: Visualization special"
 output: 
   flexdashboard::flex_dashboard:
@@ -23,6 +24,7 @@ output:
 # install.packages("devtools")
 # install.packages("magrittr")
 # install.packages("dplyr")
+# devtools::install_github("jrowen/rhandsontable")
 # devtools::install_github("rstudio/leaflet")
 # devtools::install_github("rstudio/DT")
 # devtools::install_github("rstudio/shiny")
@@ -38,7 +40,7 @@ output:
 ## not run 
 
 pacman::p_load(dplyr, shiny, flexdashboard, crosstalk, highcharter, ggplot2, parsetR, DT, 
-               leaflet, d3scatter, d3heatmap, magrittr, formattable)
+               leaflet, d3scatter, d3heatmap, magrittr, formattable, rhandsontable)
 
 #### Data set 1
 quakes$class <- factor(floor(quakes$mag), labels = c("Light", "Moderate", "Strong"))
@@ -78,7 +80,7 @@ filter_slider("mpg", "Miles per Gallon (heatmap)", mtcarsCT, ~mpg, step = 0.1)
 filter_slider("hp", "horsepower (heatmap)", mtcarsCT, ~hp, step = 1)
 ```
 
-<font-size:10>Copyright &copy; 2016 <b>Zurich User meetup: Visualization special</b>.<br><br> Built using <ul class="dashed"><li>R,</li> <li>flexdashboard,</li> <li>shiny,</li> <li>DT,</li> <li>leaflet,</li> <li>highcharter,</li> <li>d3scatter,</li> <li>parsetR,</li> <li>ggplot2,</li> <li>formattable,</li>
+<font-size:10>Copyright &copy; 2016 <b>Zurich User meetup: Visualization special</b>.<br><br> Built using <ul class="dashed"><li>R,</li> <li>flexdashboard,</li> <li>shiny,</li> <li>DT,</li> <li>leaflet,</li> <li>highcharter,</li> <li>d3scatter,</li> <li>parsetR,</li> <li>ggplot2,</li> <li>formattable,</li> <li>rhandsontable,</li>
 <li>d3heatmap, </li><li>crosstalk and <span style="font-size:125%;color:red;">&nbsp; &hearts;</span></font-size></li> </ul>
 
 Row 1
@@ -148,7 +150,7 @@ renderD3heatmap({
 Row 1
 -------------------------------------
     
-### Place holder 1
+### DT with extentions
     
 ```{r}
 df3 <- mtcars
@@ -205,14 +207,14 @@ cbind(Brands=df3[, 12], df3[, -12]) %>%
 Row 2 {.tabset .tabset-fade}
 -------------------------------------
    
-### Place holder 2
+### Plain old DT
 
 ```{r}
 datatable(quakes, rownames = FALSE, extensions = 'Scroller', 
           options = list(scrollY = 200,scroller = TRUE))
 ```   
  
-### Place holder 3
+### formattable
     
 ```{r}
 ft <- data.frame(
@@ -240,4 +242,81 @@ formattable(ft, list(
     style = x ~ style(color = ifelse(x, "green", "red")),
     x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Yes", "No")))
 ))
+```
+
+
+### Cool rhandsontable
+    
+```{r}
+DF = data.frame(val = 1:10, bool = TRUE, big = LETTERS[1:10],
+                small = letters[1:10],
+                dt = seq(from = Sys.Date(), by = "days", length.out = 10),
+                stringsAsFactors = FALSE)
+
+DF$chart = c(sapply(1:5,
+                    function(x) jsonlite::toJSON(list(values=rnorm(10),
+                                                      options = list(type = "bar")))),
+             sapply(1:5,
+                    function(x) jsonlite::toJSON(list(values=rnorm(10),
+                                                      options = list(type = "line")))))
+
+rhandsontable(DF, rowHeaders = NULL, width = 550, height = 300) %>%
+  hot_col("chart", renderer = htmlwidgets::JS("renderSparkline"), columnSorting = TRUE, stretchH = "all")
+```
+
+### Cool..er rhandsontable
+    
+```{r}
+DF = data.frame(
+  title = c(
+    "<a href='http://www.ebay.com/itm/NEW-Professional-JavaScript-for-Web-Developers-by-Nicholas-C-Zakas-Paperback-Boo-/380586356617?hash=item589cb6ef89:g:1w4AAOSwo3pWcAJs'>Professional JavaScript for Web Developers</a>",
+    "<a href='http://www.ebay.com/itm/JavaScript-The-Good-Parts-/152177773737?hash=item236e808ca9:g:YyAAAOSwhMFXkvdV'>JavaScript: The Good Parts</a>",
+    "<a href='http://shop.oreilly.com/product/9780596805531.do'>JavaScript: The Definitive Guide</a>"
+  ),
+  desc = c(
+    "This <a href='http://bit.ly/sM1bDf'>book</a> provides a developer-level introduction along with more advanced and useful features of <b>JavaScript</b>.",
+    "This book provides a developer-level introduction along with <b>more advanced</b> and useful features of JavaScript.",
+    "<em>JavaScript: The Definitive Guide</em> provides a thorough description of the core <b>JavaScript</b> language and both the legacy and standard DOMs implemented in web browsers."
+  ),
+  comments = c(
+    "I would rate it &#x2605;&#x2605;&#x2605;&#x2605;&#x2606;",
+    "This is the book about JavaScript",
+    "I've never actually read it, but the <a href='http://shop.oreilly.com/product/9780596805531.do'>comments</a> are highly <strong>positive</strong>."
+  ), 
+  cover = c(
+    "http://ecx.images-amazon.com/images/I/51bRhyVTVGL._SL50_.jpg",
+    "http://ecx.images-amazon.com/images/I/51gdVAEfPUL._SL50_.jpg",
+    "http://ecx.images-amazon.com/images/I/51VFNL4T7kL._SL50_.jpg"
+ ),
+ stringsAsFactors = FALSE
+)
+
+rhandsontable(DF, allowedTags = "<em><b><strong><a><big>", 
+              width = 800, height = 450, rowHeaders = FALSE) %>%
+  hot_cols(colWidths = c(200, 200, 200, 80)) %>%
+  hot_col(1:2, renderer = "html") %>%
+  hot_col(1:3, renderer = htmlwidgets::JS("safeHtmlRenderer")) %>%
+  hot_col(4, renderer = "
+    function(instance, td, row, col, prop, value, cellProperties) {
+      var escaped = Handsontable.helper.stringify(value),
+        img;
+  
+      if (escaped.indexOf('http') === 0) {
+        img = document.createElement('IMG');
+        img.src = value;
+  
+        Handsontable.Dom.addEvent(img, 'mousedown', function (e){
+          e.preventDefault(); // prevent selection quirk
+        });
+  
+        Handsontable.Dom.empty(td);
+        td.appendChild(img);
+      }
+      else {
+        // render as text
+        Handsontable.renderers.TextRenderer.apply(this, arguments);
+      }
+  
+      return td;
+    }")
 ```
