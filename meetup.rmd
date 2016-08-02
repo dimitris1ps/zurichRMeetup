@@ -1,5 +1,4 @@
 ---
-# https://github.com/dimitris1ps/zurichRMeetup
 title: "&nbsp;&nbsp;&nbsp;&nbsp;Zurich R User meetup: Visualization special"
 output: 
   flexdashboard::flex_dashboard:
